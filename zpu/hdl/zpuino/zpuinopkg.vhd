@@ -724,4 +724,32 @@ package zpuinopkg is
   );
   end component zpuino_serialreset;  
 
+  component i2c_master_top is
+  generic(
+    ARST_LVL : std_logic := '0'                   -- asynchronous reset level
+  );
+  port (
+    -- wishbone signals
+    wb_clk_i      : in  std_logic;                      -- master clock input
+    wb_rst_i      : in  std_logic := '0';               -- synchronous active high reset
+    arst_i        : in  std_logic := not ARST_LVL;      -- asynchronous reset
+    wb_adr_i      : in  std_logic_vector(2 downto 0);   -- lower address bits
+    wb_dat_i      : in  std_logic_vector(31 downto 0);  -- Databus input
+    wb_dat_o      : out std_logic_vector(31 downto 0);  -- Databus output
+    wb_we_i       : in  std_logic;                      -- Write enable input
+    wb_stb_i      : in  std_logic;                      -- Strobe signals / core select signal
+    wb_cyc_i      : in  std_logic;                      -- Valid bus cycle input
+    wb_ack_o      : out std_logic;                      -- Bus cycle acknowledge output
+    wb_inta_o     : out std_logic;                      -- interrupt request output signal
+
+    -- i2c lines
+    scl_pad_i     : in  std_logic;                      -- i2c clock line input
+    scl_pad_o     : out std_logic;                      -- i2c clock line output
+    scl_padoen_o  : out std_logic;                      -- i2c clock line output enable, active low
+    sda_pad_i     : in  std_logic;                      -- i2c data line input
+    sda_pad_o     : out std_logic;                      -- i2c data line output
+    sda_padoen_o  : out std_logic                       -- i2c data line output enable, active low
+  );
+  end component i2c_master_top;
+
 end package zpuinopkg;
