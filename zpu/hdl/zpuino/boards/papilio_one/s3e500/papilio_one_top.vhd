@@ -757,25 +757,45 @@ begin
   -- IO SLOT 14
   --
 
-  slot14: zpuino_empty_device
+  -- slot14: zpuino_empty_device
+  -- port map (
+    -- wb_clk_i    => wb_clk_i,
+    -- wb_rst_i    => wb_rst_i,
+    -- wb_dat_o    => slot_read(14),
+    -- wb_dat_i    => slot_write(14),
+    -- wb_adr_i    => slot_address(14),
+    -- wb_we_i     => slot_we(14),
+    -- wb_cyc_i    => slot_cyc(14),
+    -- wb_stb_i    => slot_stb(14),
+    -- wb_ack_o    => slot_ack(14),
+    -- wb_inta_o   => slot_interrupt(14)
+    -- --,
+
+    -- --clk_1MHZ    => sysclk_1mhz,
+    -- --audio_data  => sid_audio_data
+
+  -- );
+
+  slot14: wm8731_top
   port map (
-    wb_clk_i    => wb_clk_i,
-    wb_rst_i    => wb_rst_i,
-    wb_dat_o    => slot_read(14),
-    wb_dat_i    => slot_write(14),
-    wb_adr_i    => slot_address(14),
-    wb_we_i     => slot_we(14),
-    wb_cyc_i    => slot_cyc(14),
-    wb_stb_i    => slot_stb(14),
-    wb_ack_o    => slot_ack(14),
-    wb_inta_o   => slot_interrupt(14)
-    --,
+    -- wishbone signals
+    wb_clk_i      => wb_clk_i,
+    wb_rst_i      => wb_rst_i,
+    arst_i        => '1',
+    wb_adr_i      => slot_address(14),
+    wb_dat_i      => slot_write(14),
+    wb_dat_o      => slot_read(14),
+    wb_we_i       => slot_we(14),
+    wb_stb_i      => slot_stb(14),
+    wb_cyc_i      => slot_cyc(14),
+    wb_ack_o      => slot_ack(14),
+    wb_inta_o     => slot_interrupt(14),
 
-    --clk_1MHZ    => sysclk_1mhz,
-    --audio_data  => sid_audio_data
-
+    -- wm8731 lines
+    wm_clk_i      => wb_clk_i,  -- Temporary setting
+    wm_rst_i      => wb_rst_i   -- Temporary setting
   );
-
+  
   --
   -- IO SLOT 15
   --

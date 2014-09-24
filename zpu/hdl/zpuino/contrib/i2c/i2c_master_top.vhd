@@ -75,7 +75,7 @@ use ieee.numeric_std.all;
 
 entity i2c_master_top is
   generic (
-    ARST_LVL : std_logic := '0'                   -- asynchronous reset level
+    ARST_LVL : std_logic := '0'                         -- asynchronous reset level
   );
   port (
     -- wishbone signals
@@ -163,7 +163,7 @@ architecture structural of i2c_master_top is
   signal ien     : std_logic;                      -- interrupt enable signal
 
   -- status register signals
-  signal irxack, rxack : std_logic;                -- received aknowledge from slave
+  signal irxack, rxack : std_logic;                -- received acknowledge from slave
   signal tip           : std_logic;                -- transfer in progress
   signal irq_flag      : std_logic;                -- interrupt pending flag
   signal i2c_busy      : std_logic;                -- i2c bus busy (start signal detected)
@@ -212,15 +212,19 @@ begin
   gen_regs: process(rst_i, wb_clk_i)
   begin
     if (rst_i = '0') then
+      -- asynchronous reset
       prer <= (others => '1');
       ctr  <= (others => '0');
       txr  <= (others => '0');
     elsif (wb_clk_i'event and wb_clk_i = '1') then
+      -- on the rising clock edge...
       if (wb_rst_i = '1') then
+        -- synchronous reset
         prer <= (others => '1');
         ctr  <= (others => '0');
         txr  <= (others => '0');
       elsif (wb_wacc = '1') then
+        -- writing to the registers
         case wb_adr_i is
           when "000" => prer( 7 downto 0) <= unsigned(wb_dat_i(7 downto 0));
           when "001" => prer(15 downto 8) <= unsigned(wb_dat_i(7 downto 0));
@@ -243,9 +247,12 @@ begin
   gen_cr: process(rst_i, wb_clk_i)
   begin
     if (rst_i = '0') then
+      -- asynchronous reset
       cr <= (others => '0');
     elsif (wb_clk_i'event and wb_clk_i = '1') then
+      -- on the rising edge of the clock...
       if (wb_rst_i = '1') then
+        -- synchronous reset
         cr <= (others => '0');
       elsif (wb_wacc = '1') then
         if ( (core_en = '1') and (wb_adr_i = "100") ) then
