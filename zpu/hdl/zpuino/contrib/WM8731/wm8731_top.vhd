@@ -114,6 +114,9 @@ architecture structural of wm8731_top is
   signal fifo_read_enable : std_logic;                    -- fifo read enable
   signal fifo_read_clear : std_logic;                     -- fifo read address clear
   signal fifo_clear : std_logic;                          -- fifo clear signal
+  signal fifo_read_flag : std_logic;                      -- fifo read flag
+  signal read_address_inc : std_logic;                    -- read address gets incremented when set
+  
   -- END SIGNALS
     
 begin
@@ -193,11 +196,15 @@ begin
     -- Prepare data for writing.
     --
     elsif rising_edge(wb_clk_i) then
+      --
       -- Initialize
+      --
       fifo_write_data <= (others => '0');
       fifo_write_enable <= '0';
       
+      -- 
       -- Process the different addresses on write
+      --
       if (wb_cyc_i='1' and wb_stb_i='1' and wb_we_i='1') then
         case wb_adr_i(minIObit+2 downto minIObit) is
           -- 
@@ -229,33 +236,58 @@ begin
   -- 
   -- Load the output data when address is read.
   --
-  read_data: process(wb_adr_i)
+  fifo_read_flag <= iack_o and not(wb_we_i);
+  read_data: process(fifo_read_flag)
   begin
-    --
-    -- Process the different addresses.
-    --
-    case wb_adr_i(minIObit+2 downto minIObit) is
+    if (fifo_read_flag = '0') then
+      read_address_inc <= '0';
+    else
       --
-      -- Read data from the async fifo
+      -- Process the different addresses.
       --
-      when "000" => null;
-        wb_dat_o(31 downto 0) <= (others => '0');
-        
-      -- 
-      -- Read status flags.
-      -- 
-      when "001" =>
-        wb_dat_o(31 downto 0) <= (others => '0');
-        wb_dat_o(0) <= fifo_empty;
-        wb_dat_o(1) <= fifo_full;
-        
-      --
-      -- Illegal cases.
-      --
-      when others =>
-        report ("Illegal read address, setting all values to unknown.");
-        wb_dat_o(31 downto 0) <= (others => 'X');
-    end case;
+      case wb_adr_i(minIObit+2 downto minIObit) is
+        --
+        -- Read data from the async fifo
+        --
+        when "000" =>
+          wb_dat_o(31 downto 0) <= (others => '0');
+          wb_dat_o(15 downto 0) <= fifo_read_data;
+          read_address_inc <= '1';
+          
+        -- 
+        -- Read status flags.
+        -- 
+        when "001" =>
+          wb_dat_o(31 downto 0) <= (others => '0');
+          wb_dat_o(0) <= fifo_empty;
+          wb_dat_o(1) <= fifo_full;
+          read_address_inc <= '0';
+          
+        --
+        -- Illegal cases.
+        --
+        when others =>
+          report ("Illegal read address, setting all values to unknown.");
+          wb_dat_o(31 downto 0) <= (others => 'X');
+          read_address_inc <= '0';
+          
+      end case;
+    end if;
+  end process;
+  
+  --
+  -- Process to update the read address.
+  --
+  process(wb_rst_i, wb_clk_i)
+  begin
+    if (wb_rst_i = '1') then
+      fifo_read_enable <= '0';
+    elsif rising_edge(wb_clk_i) then
+      fifo_read_enable <= '0';
+      if ((fifo_read_flag = '1') and (read_address_inc = '1')) then
+        fifo_read_enable <= '1';
+      end if;
+    end if;
   end process;
   
   -- -- 
