@@ -772,7 +772,10 @@ package zpuinopkg is
 
     -- wm8731 lines
     wm_clk_i      : in  std_logic;                      -- clock in from the codec
-    wm_rst_i      : in  std_logic                       -- codec reset signal
+    wm_rst_i      : in  std_logic;                      -- codec reset signal
+    wm_bclk_o     : out std_logic;                      -- codec bclk signal
+    wm_lrc_o      : out std_logic;                      -- codec left/right channel signal
+    wm_dacdat_o   : out std_logic                       -- coded DAC data
   );
   end component;
 

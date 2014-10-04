@@ -17,7 +17,7 @@
 `timescale 1ns / 1ps
 
 module async_fifo
-    #(parameter DATA_WIDTH    = 16,
+    #(parameter DATA_WIDTH    = 32,
                 ADDRESS_WIDTH = 3,
                 FIFO_DEPTH    = (1 << ADDRESS_WIDTH))
      //Reading port

@@ -192,6 +192,11 @@ architecture behave of papilio_one_top is
   signal jtag_data_chain_out: std_logic_vector(98 downto 0);
   signal jtag_ctrl_chain_in:  std_logic_vector(11 downto 0);
 
+  signal wm_clk_i: std_logic;     -- WM8731 clock in
+  signal wm_bclk_o: std_logic;    -- bclk out for the WM8731
+  signal wm_dacdat_o: std_logic;  -- DAC data out
+  signal wm_lrc_o: std_logic;     -- left/rightr channel out
+  
 --  signal TCK,TDI,CAPTUREIR,UPDATEIR,SHIFTIR,CAPTUREDR,UPDATEDR,SHIFTDR,TLR,TDO_IR,TDO_DR: std_logic;
 
 
@@ -792,8 +797,11 @@ begin
     wb_inta_o     => slot_interrupt(14),
 
     -- wm8731 lines
-    wm_clk_i      => wb_clk_i,  -- Temporary setting
-    wm_rst_i      => wb_rst_i   -- Temporary setting
+    wm_clk_i      => wm_clk_i,
+    wm_rst_i      => wb_rst_i,  -- Temporary setting
+    wm_bclk_o     => wm_bclk_o,
+    wm_lrc_o      => wm_lrc_o,
+    wm_dacdat_o   => wm_dacdat_o
   );
   
   --
@@ -955,10 +963,14 @@ begin
     gpio_spp_data(8) <= ym_audio;               -- PPS8 : ym audio output
     gpio_spp_data(9) <= i2c_scl_padoen_o;       -- PPS9 : I2C clock
     gpio_spp_data(10)<= i2c_sda_padoen_o;       -- PPS10: I2C data
-
+    gpio_spp_data(11)<= wm_bclk_o;              -- PPS11: WM8731 BCLK
+    gpio_spp_data(12)<= wm_dacdat_o;            -- PPS12: WM8731 DAC DATA
+    gpio_spp_data(13)<= wm_lrc_o;               -- PPS13: WM8731 LEFT/RIGHT CHANNEL
+    
     -- Input data lines
     spi2_miso <= gpio_spp_read(0);              -- PPS0 : USPI MISO
     uart2_rx <= gpio_spp_read(1);               -- PPS1 : USPI MISO
+    wm_clk_i <= gpio_spp_read(2);               -- PPS2 : WM8731 clock
     i2c_scl_pad_i <= gpio_spp_read(9);          -- PPS9 : I2C clock
     i2c_sda_pad_i <= gpio_spp_read(10);         -- PPS10: I2C data
 
