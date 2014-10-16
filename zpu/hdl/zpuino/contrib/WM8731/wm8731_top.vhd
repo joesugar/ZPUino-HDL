@@ -69,7 +69,7 @@ entity wm8731_top is
     wm_bclk_o     : out std_logic;                      -- codec bclk signal
     wm_lrc_o      : out std_logic;                      -- codec left/right channel
     wm_dacdat_o   : out std_logic                       -- coded DAC data
-    );
+  );
 end entity wm8731_top;
     
 architecture structural of wm8731_top is
