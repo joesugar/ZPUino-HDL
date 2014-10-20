@@ -195,6 +195,7 @@ architecture behave of papilio_one_top is
   signal wm_clk_i: std_logic;     -- WM8731 clock in
   signal wm_bclk_o: std_logic;    -- bclk out for the WM8731
   signal wm_dacdat_o: std_logic;  -- DAC data out
+  signal wm_adcdat_i: std_logic;  -- ADC data in
   signal wm_lrc_o: std_logic;     -- left/rightr channel out
   
 --  signal TCK,TDI,CAPTUREIR,UPDATEIR,SHIFTIR,CAPTUREDR,UPDATEDR,SHIFTDR,TLR,TDO_IR,TDO_DR: std_logic;
@@ -801,7 +802,8 @@ begin
     wm_rst_i      => wb_rst_i,  -- Temporary setting
     wm_bclk_o     => wm_bclk_o,
     wm_lrc_o      => wm_lrc_o,
-    wm_dacdat_o   => wm_dacdat_o
+    wm_dacdat_o   => wm_dacdat_o,
+    wm_adcdat_i   => wm_adcdat_i
   );
   
   --
@@ -971,6 +973,7 @@ begin
     spi2_miso <= gpio_spp_read(0);              -- PPS0 : USPI MISO
     uart2_rx <= gpio_spp_read(1);               -- PPS1 : USPI MISO
     wm_clk_i <= gpio_spp_read(2);               -- PPS2 : WM8731 clock
+    wm_adcdat_i <= gpio_spp_read(3);            -- PPS3 : WM8731 ADC DATA
     i2c_scl_pad_i <= gpio_spp_read(9);          -- PPS9 : I2C clock
     i2c_sda_pad_i <= gpio_spp_read(10);         -- PPS10: I2C data
 

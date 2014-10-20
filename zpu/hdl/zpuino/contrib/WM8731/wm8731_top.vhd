@@ -68,7 +68,8 @@ entity wm8731_top is
     wm_rst_i      : in  std_logic;                      -- codec reset signal
     wm_bclk_o     : out std_logic;                      -- codec bclk signal
     wm_lrc_o      : out std_logic;                      -- codec left/right channel
-    wm_dacdat_o   : out std_logic                       -- coded DAC data
+    wm_dacdat_o   : out std_logic;                      -- codec DAC data
+    wm_adcdat_i   : in  std_logic                       -- codec ADC data
   );
 end entity wm8731_top;
     
@@ -136,6 +137,7 @@ architecture structural of wm8731_top is
   signal data_to_codec_buffer : std_logic_vector(wordSize-1 downto 0);  -- buffer to hold data to be sent to codec
   signal data_to_codec : std_logic_vector(wordSize-1 downto 0);         -- data to be sent to codec
   signal data_from_codec : std_logic_vector(wordSize-1 downto 0);       -- data read from the codec
+  signal data_from_codec_mask : std_logic_vector(wordSize-1 downto 0);  -- mask used to read data from the codec.
   
   -- END SIGNALS
     
@@ -223,7 +225,7 @@ begin
   a2d_fifo_clear <= a2d_fifo_write_clear or a2d_fifo_read_clear;
   
   -- 
-  -- Write data to the D2A FIFO.
+  -- Write data to the D2A FIFO so it can be sent to the codec.
   --
   write_d2a_data: process(wb_rst_i, wb_clk_i)
   begin
@@ -276,14 +278,22 @@ begin
   end process;
   
   -- 
-  -- Read data from the A2D FIFO
-  -- Load the output data when address is read.
+  -- Read data from the A2D FIFO so it can be sent to the controller
+  --
+  -- You should load the output data when address is read.
   --
   a2d_fifo_read_flag <= iack_o and not(wb_we_i);
   read_a2d_data: process(a2d_fifo_read_flag)
   begin
+    --
+    -- Reset 
+    --
     if (a2d_fifo_read_flag = '0') then
       a2d_read_address_inc <= '0';
+      
+    --
+    -- Read data from the codec.
+    --
     else
       --
       -- Process the different addresses.
@@ -336,6 +346,7 @@ begin
 
   -- 
   -- Create the clocks used to drive the codec.
+  --
   -- The BCLK will be the codec clock / 2.
   -- The sample clock will be the codec clock / 256 but
   -- it's width has to match that of the BLCK.
@@ -356,7 +367,8 @@ begin
     codec_sample_clock_counter(0));
     
   --
-  -- Process to read data from the D2A FIFO to be sent to the codec.
+  -- Read data from the D2A FIFO so it can be sent to the codec.
+  --
   -- The clock produces a single hi pulse every 256 pulses.
   -- It is expected the chip will be configured in DSP mode and
   -- the data is to be sent to the chip immediately following that hi bit
@@ -382,9 +394,8 @@ begin
       d2a_fifo_read_enable <= '0';
       
       --
-      -- Data shifts occur on the falling edge of the bclk, 
-      -- which occurs when bclk = '1' on the rising edge
-      -- of wm_clk_i
+      -- Load the data on the falling edge so it can be 
+      -- read by the codec on the rising edge.
       -- 
       if (codec_bclk = '1') then
         --
@@ -414,27 +425,81 @@ begin
     end if;
   end process;
 
+  --
+  -- Process to read data from the codec and send it to the A2D FIFO.
+  --
+  write_a2d_data: process(wm_rst_i, wm_clk_i)
+  begin
+    --
+    -- Initialization
+    --
+    if (wm_rst_i = '1') then
+      data_from_codec <= (others => '0');
+      data_from_codec_mask <= (others => '0');
+      a2d_fifo_data_in <= (others => '0');
+      a2d_fifo_write_enable <= '0';
+    --
+    -- Processing
+    --
+    elsif rising_edge(wm_clk_i) then
+      -- 
+      -- Initialize
+      --
+      a2d_fifo_write_enable <= '0';
+      
+      --
+      -- Data from the codec is stable on the rising edge of
+      -- the bclk (when bclk = '0')
+      -- 
+      if (codec_bclk = '0') then
+        --
+        -- When the sample clock is '1' prepare to read data
+        -- from the codec.
+        --
+        if (codec_sample_clock = '1') then
+          --
+          -- There should be a sample from the codec waiting.
+          -- Write it into the FIFO and prepare the register
+          -- for the next sample.  If the FIFO is full the
+          -- sample is going to be lost.
+          --
+          if (a2d_fifo_full = '0') then
+            a2d_fifo_data_in <= data_from_codec;
+            a2d_fifo_write_enable <= '1';
+          end if;
+          data_from_codec <= (others => '0');
+          data_from_codec_mask <= (others => '1');            
+
+        --
+        -- If the sample clock is '0' you are reading data
+        -- from the codec.
+        --
+        else
+          --
+          -- Read as long as one of the bits in the data codec mask
+          -- is '1'.
+          --
+          if or_reduce(data_from_codec_mask) = '1' then
+            data_from_codec <= data_from_codec(wordSize-2 downto 0) & wm_adcdat_i;
+          end if;
+          
+          -- 
+          -- Shift the mask along with the data.
+          --
+          data_from_codec_mask <= data_from_codec_mask(wordSize-2 downto 0) & '0';
+        end if;
+      end if;
+    end if;
+  end process;
+      
+
   -- 
   -- Outgoing signals to the WM8731
   -- 
   wm_bclk_o <= codec_bclk;
   wm_lrc_o  <= codec_sample_clock;
   wm_dacdat_o <= data_to_codec(wordSize-1);
-
-  --
-  -- Process to read data from the codec to be sent to the A2D FIFO.
-  --
-  -- process(wm_rst_i, wm_clk_i)
-  -- begin
-    -- if (wm_rst_i = '1') then
-      -- data_to_codec <= (others => '0');
-    -- elsif rising_edge(wm_clk_i) then
-      -- if (a2d_fifo_empty = '0') then
-        -- data_to_codec <= d2a_fifo_data_out;
-      -- end if;
-    -- end if;
-  -- end process;
-      
+  
   -- END PROCESSING
 
 end architecture structural;

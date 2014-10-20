@@ -775,7 +775,8 @@ package zpuinopkg is
     wm_rst_i      : in  std_logic;                      -- codec reset signal
     wm_bclk_o     : out std_logic;                      -- codec bclk signal
     wm_lrc_o      : out std_logic;                      -- codec left/right channel signal
-    wm_dacdat_o   : out std_logic                       -- coded DAC data
+    wm_dacdat_o   : out std_logic;                      -- codec DAC data
+    wm_adcdat_i   : in  std_logic                       -- codec ADC data
   );
   end component;
 
