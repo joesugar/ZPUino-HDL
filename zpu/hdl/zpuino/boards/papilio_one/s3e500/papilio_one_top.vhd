@@ -139,6 +139,9 @@ architecture behave of papilio_one_top is
   signal slot_ack:   slot_std_logic_type;
   signal slot_interrupt: slot_std_logic_type;
 
+  signal psk_tx: std_logic_vector(1 downto 0);
+  signal block_debug: std_logic_vector(7 downto 0);
+  
   signal spi_enabled:  std_logic;
 
   signal spi2_enabled:  std_logic;
@@ -620,18 +623,25 @@ begin
   -- IO SLOT 8 (optional)
   --
 
-  adc_inst: zpuino_empty_device
+  --
+  -- IO SLOT 8 (optional)
+  --
+  psk_inst: zpuino_psk
   port map (
-    wb_clk_i    => wb_clk_i,
-    wb_rst_i    => wb_rst_i,
-    wb_dat_o    => slot_read(8),
-    wb_dat_i    => slot_write(8),
-    wb_adr_i    => slot_address(8),
-    wb_we_i     => slot_we(8),
-    wb_cyc_i    => slot_cyc(8),
-    wb_stb_i    => slot_stb(8),
-    wb_ack_o    => slot_ack(8),
-    wb_inta_o   =>  slot_interrupt(8)
+    wb_clk_i  => wb_clk_i,
+	  wb_rst_i  => wb_rst_i,
+    wb_dat_o  => slot_read(8),
+    wb_dat_i  => slot_write(8),
+    wb_adr_i  => slot_address(8),
+    wb_we_i   => slot_we(8),
+    wb_cyc_i  => slot_cyc(8),
+    wb_stb_i  => slot_stb(8),
+    wb_ack_o  => slot_ack(8),
+    wb_inta_o => slot_interrupt(8),
+    
+    -- PSK transmit vector (1 downto 0)
+    tx => psk_tx,
+    debug => block_debug
   );
 
 --  slot9: zpuino_empty_device
@@ -948,8 +958,7 @@ begin
           timers_pwm,
           spi2_mosi, spi2_sck,
           uart2_tx,
-          ym_audio,
-          i2c_scl_padoen_o, i2c_sda_padoen_o)
+          psk_tx)
   begin
 
     gpio_spp_data <= (others => DontCareValue);
@@ -962,20 +971,12 @@ begin
     gpio_spp_data(4) <= spi2_sck;               -- PPS4 : USPI SCK
     gpio_spp_data(5) <= sigmadelta_spp_data(1); -- PPS5 : SIGMADELTA1 DATA
     gpio_spp_data(6) <= uart2_tx;               -- PPS6 : UART2 DATA
-    gpio_spp_data(8) <= ym_audio;               -- PPS8 : ym audio output
-    gpio_spp_data(9) <= i2c_scl_padoen_o;       -- PPS9 : I2C clock
-    gpio_spp_data(10)<= i2c_sda_padoen_o;       -- PPS10: I2C data
-    gpio_spp_data(11)<= wm_bclk_o;              -- PPS11: WM8731 BCLK
-    gpio_spp_data(12)<= wm_dacdat_o;            -- PPS12: WM8731 DAC DATA
-    gpio_spp_data(13)<= wm_lrc_o;               -- PPS13: WM8731 LEFT/RIGHT CHANNEL
+    gpio_spp_data(7) <= psk_tx(1);              -- PPS7 : PSK_TX I CHANNEL
+    gpio_spp_data(8) <= psk_tx(0);              -- PPS8 : PSK_TX Q CHANNEL
     
     -- Input data lines
     spi2_miso <= gpio_spp_read(0);              -- PPS0 : USPI MISO
     uart2_rx <= gpio_spp_read(1);               -- PPS1 : USPI MISO
-    wm_clk_i <= gpio_spp_read(2);               -- PPS2 : WM8731 clock
-    wm_adcdat_i <= gpio_spp_read(3);            -- PPS3 : WM8731 ADC DATA
-    i2c_scl_pad_i <= gpio_spp_read(9);          -- PPS9 : I2C clock
-    i2c_sda_pad_i <= gpio_spp_read(10);         -- PPS10: I2C data
 
   end process;
 
